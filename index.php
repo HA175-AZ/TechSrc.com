@@ -187,10 +187,36 @@ include 'components/wishlist_cart.php';
 </section>
 
 
+<section class="top-products">
+   <h3>Les produits les plus achetés</h3>
+   <?php
+   $sql = "SELECT p.id, p.name, p.image_01, SUM(oi.quantity) AS total_vendus
+           FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
+           GROUP BY p.id, p.name, p.image_01
+           ORDER BY total_vendus DESC
+           LIMIT 3";
+   $stmt = $conn->prepare($sql);
+   $stmt->execute();
+   $top_products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-
-
+   if ($top_products) {
+      echo '<div class="top-products-list">';
+      foreach($top_products as $prod){
+         echo '<div class="top-product-card">';
+         echo '<img src="uploaded_img/'.htmlspecialchars($prod['image_01']).'" alt="'.htmlspecialchars($prod['name']).'">';
+         echo '<div class="top-product-info">';
+         echo '<h4>'.htmlspecialchars($prod['name']).'</h4>';
+         echo '<p>'.(int)$prod['total_vendus'].' ventes</p>';
+         echo '</div>';
+         echo '</div>';
+      }
+      echo '</div>';
+   } else {
+      echo '<p>Aucun produit vendu pour le moment.</p>';
+   }
+   ?>
+</section>
 
 
 

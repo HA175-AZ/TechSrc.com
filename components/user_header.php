@@ -15,10 +15,10 @@
 
    <section class="flex">
 
-      <a href="home.php" class="logo">TechSrc<span>.</span></a>
+      <a href="index.php" class="logo">TechSrc<span>.</span></a>
 
       <nav class="navbar">
-         <a href="home.php">Accueil</a>
+         <a href="index.php">Accueil</a>
          <a href="about.php">À propos</a>
          <a href="orders.php">Commandes</a>
          <a href="shop.php">Boutique</a>

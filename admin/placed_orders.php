@@ -16,7 +16,7 @@ if(isset($_POST['update_payment'])){
    $payment_status = filter_var($payment_status, FILTER_SANITIZE_STRING);
    $update_payment = $conn->prepare("UPDATE `orders` SET payment_status = ? WHERE id = ?");
    $update_payment->execute([$payment_status, $order_id]);
-   $message[] = 'payment status updated!';
+   $message[] = 'Statut de paiement mis à jour !';
 }
 
 if(isset($_GET['delete'])){
@@ -73,7 +73,7 @@ if(isset($_GET['delete'])){
             <option value="Terminé">Terminé</option>
          </select>
         <div class="flex-btn">
-         <input type="submit" value="update" class="option-btn" name="update_payment">
+         <input type="submit" value="Mettre à jour" class="option-btn" name="update_payment">
          <a href="placed_orders.php?delete=<?= $fetch_orders['id']; ?>" class="delete-btn" onclick="return confirm('delete this order?');">Supprimer</a>
         </div>
       </form>

@@ -9,7 +9,8 @@ if(isset($_SESSION['user_id'])){
 }else{
    $user_id = '';
    header('location:user_login.php');
-};
+   exit;
+}
 
 if(isset($_POST['order'])){
 
@@ -33,6 +34,20 @@ if(isset($_POST['order'])){
 
       $insert_order = $conn->prepare("INSERT INTO `orders`(user_id, name, number, email, method, address, total_products, total_price) VALUES(?,?,?,?,?,?,?,?)");
       $insert_order->execute([$user_id, $name, $number, $email, $method, $address, $total_products, $total_price]);
+      $order_id = $conn->lastInsertId(); // Récupère l'id de la commande
+
+      // Insertion des produits commandés dans order_items
+      $select_cart = $conn->prepare("SELECT * FROM `cart` WHERE user_id = ?");
+      $select_cart->execute([$user_id]);
+      while($cart_item = $select_cart->fetch(PDO::FETCH_ASSOC)){
+         $stmt = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+         $stmt->execute([
+            $order_id,
+            $cart_item['pid'],        // Utilise 'pid' ici
+            $cart_item['quantity'],
+            $cart_item['price']
+         ]);
+      }
 
       $delete_cart = $conn->prepare("DELETE FROM `cart` WHERE user_id = ?");
       $delete_cart->execute([$user_id]);
@@ -74,7 +89,7 @@ if(isset($_POST['order'])){
       <div class="display-orders">
       <?php
          $grand_total = 0;
-         $cart_items[] = '';
+         $cart_items = [];
          $select_cart = $conn->prepare("SELECT * FROM `cart` WHERE user_id = ?");
          $select_cart->execute([$user_id]);
          if($select_cart->rowCount() > 0){
@@ -90,8 +105,8 @@ if(isset($_POST['order'])){
             echo '<p class="empty">Votre panier est vide !</p>';
          }
       ?>
-         <input type="hidden" name="total_products" value="<?= $total_products; ?>">
-         <input type="hidden" name="total_price" value="<?= $grand_total; ?>" value="">
+         <input type="hidden" name="total_products" value="<?= isset($total_products) ? $total_products : ''; ?>">
+         <input type="hidden" name="total_price" value="<?= $grand_total; ?>">
          <div class="grand-total">grand total : <span>$<?= $grand_total; ?></span></div>
       </div>
 
@@ -150,18 +165,6 @@ if(isset($_POST['order'])){
    </form>
 
 </section>
-
-
-
-
-
-
-
-
-
-
-
-
 
 <?php include 'components/footer.php'; ?>
 

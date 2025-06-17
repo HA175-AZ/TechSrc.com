@@ -1,52 +1,61 @@
 <?php
-
+// filepath: c:\wamp64\www\ecommerce website\update_profile.php
 include 'components/connect.php';
-
 session_start();
+$user_id = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : '';
 
-if(isset($_SESSION['user_id'])){
-   $user_id = $_SESSION['user_id'];
-}else{
-   $user_id = '';
-};
+$message = [];
 
-if(isset($_POST['submit'])){
-
-   $name = $_POST['name'];
-   $name = filter_var($name, FILTER_SANITIZE_STRING);
-   $email = $_POST['email'];
-   $email = filter_var($email, FILTER_SANITIZE_STRING);
-
-   $update_profile = $conn->prepare("UPDATE `users` SET name = ?, email = ? WHERE id = ?");
-   $update_profile->execute([$name, $email, $user_id]);
-
-   $empty_pass = 'da39a3ee5e6b4b0d3255bfef95601890afd80709';
-   $prev_pass = $_POST['prev_pass'];
-   $old_pass = sha1($_POST['old_pass']);
-   $old_pass = filter_var($old_pass, FILTER_SANITIZE_STRING);
-   $new_pass = sha1($_POST['new_pass']);
-   $new_pass = filter_var($new_pass, FILTER_SANITIZE_STRING);
-   $cpass = sha1($_POST['cpass']);
-   $cpass = filter_var($cpass, FILTER_SANITIZE_STRING);
-
-   if($old_pass == $empty_pass){
-      $message[] = 'please enter old password!';
-   }elseif($old_pass != $prev_pass){
-      $message[] = 'old password not matched!';
-   }elseif($new_pass != $cpass){
-      $message[] = 'confirm password not matched!';
-   }else{
-      if($new_pass != $empty_pass){
-         $update_admin_pass = $conn->prepare("UPDATE `users` SET password = ? WHERE id = ?");
-         $update_admin_pass->execute([$cpass, $user_id]);
-         $message[] = 'Mot de passe mis à jour avec succès !';
-      }else{
-         $message[] = 'Veuillez entrer un nouveau mot de passe !';
-      }
-   }
-   
+if ($user_id == '') {
+   header('location:user_login.php');
+   exit;
 }
 
+// Récupérer les infos actuelles de l'utilisateur
+$stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (isset($_POST['submit'])) {
+   $name = htmlspecialchars(trim($_POST['name']));
+   $email = filter_var(trim($_POST['email']), FILTER_VALIDATE_EMAIL);
+
+   // Si l'utilisateur veut changer son mot de passe
+   $pass = $_POST['pass'];
+   $cpass = $_POST['cpass'];
+
+   if (!$name || !$email) {
+      $message[] = 'Nom et email sont obligatoires.';
+   } else {
+      // Vérifier si l'email est déjà utilisé par un autre utilisateur
+      $check = $conn->prepare("SELECT id FROM users WHERE email = ? AND id != ?");
+      $check->execute([$email, $user_id]);
+      if ($check->rowCount() > 0) {
+         $message[] = 'Cet email est déjà utilisé par un autre compte.';
+      } else {
+         // Mise à jour du nom et de l'email
+         $update = $conn->prepare("UPDATE users SET name = ?, email = ? WHERE id = ?");
+         $update->execute([$name, $email, $user_id]);
+         $message[] = 'Profil mis à jour !';
+
+         // Si les champs mot de passe sont remplis, on vérifie et on met à jour
+         if (!empty($pass) || !empty($cpass)) {
+            if ($pass !== $cpass) {
+               $message[] = 'Les mots de passe ne correspondent pas.';
+            } else {
+               $hash = password_hash($pass, PASSWORD_DEFAULT);
+               $update_pass = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+               $update_pass->execute([$hash, $user_id]);
+               $message[] = 'Mot de passe mis à jour !';
+            }
+         }
+         // Rafraîchir les infos utilisateur
+         $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+         $stmt->execute([$user_id]);
+         $user = $stmt->fetch(PDO::FETCH_ASSOC);
+      }
+   }
+}
 ?>
 
 <!DOCTYPE html>
@@ -55,45 +64,31 @@ if(isset($_POST['submit'])){
    <meta charset="UTF-8">
    <meta http-equiv="X-UA-Compatible" content="IE=edge">
    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <title>Modifier</title>
-   
-   <!-- font awesome cdn link  -->
+   <title>Modifier le profil</title>
    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
-
-   <!-- custom css file link  -->
    <link rel="stylesheet" href="css/style.css">
-
 </head>
 <body>
-   
 <?php include 'components/user_header.php'; ?>
 
 <section class="form-container">
-
    <form action="" method="post">
-      <h3>Mettre à jour</h3>
-      <input type="hidden" name="prev_pass" value="<?= $fetch_profile["password"]; ?>">
-      <input type="text" name="name" required placeholder="Entrez votre nom d’utilisateur" maxlength="20"  class="box" value="<?= $fetch_profile["name"]; ?>">
-      <input type="email" name="email" required placeholder="Entrez votre  email" maxlength="50"  class="box" oninput="this.value = this.value.replace(/\s/g, '')" value="<?= $fetch_profile["email"]; ?>">
-      <input type="password" name="old_pass" placeholder="Entrez votre ancien mot de passe" maxlength="20"  class="box" oninput="this.value = this.value.replace(/\s/g, '')">
-      <input type="password" name="new_pass" placeholder="Entrez votre nouveau mot de passe" maxlength="20"  class="box" oninput="this.value = this.value.replace(/\s/g, '')">
-      <input type="password" name="cpass" placeholder="Confirmer votre nouveau mot de passe" maxlength="20"  class="box" oninput="this.value = this.value.replace(/\s/g, '')">
+      <h3>Modifier le profil</h3>
+      <?php
+      if (!empty($message) && is_array($message)) {
+         foreach ($message as $msg) {
+            echo '<div class="message">'.$msg.'</div>';
+         }
+      }
+      ?>
+      <input type="text" name="name" required placeholder="Votre nom" maxlength="20" class="box" value="<?= htmlspecialchars($user['name']) ?>">
+      <input type="email" name="email" required placeholder="Votre email" maxlength="50" class="box" value="<?= htmlspecialchars($user['email']) ?>" oninput="this.value = this.value.replace(/\s/g, '')">
+      <input type="password" name="pass" placeholder="Nouveau mot de passe (laisser vide pour ne pas changer)" maxlength="20" class="box" oninput="this.value = this.value.replace(/\s/g, '')">
+      <input type="password" name="cpass" placeholder="Confirmer le nouveau mot de passe" maxlength="20" class="box" oninput="this.value = this.value.replace(/\s/g, '')">
       <input type="submit" value="Mettre à jour" class="btn" name="submit">
+      <a href="index.php" class="option-btn">Retour accueil</a>
    </form>
-
 </section>
-
-
-
-
-
-
-
-
-
-
-
-
 
 <?php include 'components/footer.php'; ?>
 

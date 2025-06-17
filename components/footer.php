@@ -4,7 +4,7 @@
 
       <div class="box">
          <h3>Liens rapides</h3>
-         <a href="home.php"> <i class="fas fa-angle-right"></i> accueil</a>
+         <a href="index.php"> <i class="fas fa-angle-right"></i> accueil</a>
          <a href="about.php"> <i class="fas fa-angle-right"></i> à propos</a>
          <a href="shop.php"> <i class="fas fa-angle-right"></i> boutique</a>
          <a href="contact.php"> <i class="fas fa-angle-right"></i> contact</a>
